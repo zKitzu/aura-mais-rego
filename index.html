@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tela pra Amigos</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📡</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+  :root{
+    --bg:#12141C;
+    --bg-elevated:#1B1F2A;
+    --bg-inset:#0C0E14;
+    --text:#F2F1ED;
+    --text-dim:#8B90A0;
+    --line:#2A2F3D;
+    --live:#FF4D4D;
+    --ok:#4ADE80;
+    --font-head:'Space Grotesk', system-ui, -apple-system, sans-serif;
+    --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono:'IBM Plex Mono', ui-monospace, "SFMono-Regular", monospace;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg:#F4F3EF; --bg-elevated:#FFFFFF; --bg-inset:#EAE8E2; --text:#181A20; --text-dim:#666B7A; --line:#DEDCD3;
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#F4F3EF; --bg-elevated:#FFFFFF; --bg-inset:#EAE8E2; --text:#181A20; --text-dim:#666B7A; --line:#DEDCD3;
+  }
+  :root[data-theme="dark"]{
+    --bg:#12141C; --bg-elevated:#1B1F2A; --bg-inset:#0C0E14; --text:#F2F1ED; --text-dim:#8B90A0; --line:#2A2F3D;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    min-height:100vh;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    display:flex; flex-direction:column; align-items:center;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{ color:inherit; }
+  .status-bar{
+    width:100%; max-width:640px; padding:18px 20px 0;
+    display:flex; align-items:center; gap:10px;
+    font-family:var(--font-mono); font-size:12.5px; color:var(--text-dim);
+  }
+  .dot{ width:8px; height:8px; border-radius:50%; background:var(--text-dim); flex-shrink:0; }
+  .dot.live{ background:var(--live); box-shadow:0 0 0 0 rgba(255,77,76,.6); animation:pulse 1.8s infinite; }
+  .dot.ok{ background:var(--ok); }
+  @keyframes pulse{
+    0%{ box-shadow:0 0 0 0 rgba(255,77,76,.55); }
+    70%{ box-shadow:0 0 0 8px rgba(255,77,76,0); }
+    100%{ box-shadow:0 0 0 0 rgba(255,77,76,0); }
+  }
+  @media (prefers-reduced-motion: reduce){ .dot.live{ animation:none; } }
+  main{
+    width:100%; max-width:640px; padding:56px 20px 64px;
+    display:flex; flex-direction:column; align-items:center; text-align:center;
+    flex:1;
+  }
+  h1{
+    font-family:var(--font-head); font-weight:600; font-size:clamp(28px,5vw,38px);
+    line-height:1.15; letter-spacing:-0.01em; margin:0 0 14px;
+  }
+  p.lede{ color:var(--text-dim); font-size:16px; line-height:1.55; max-width:440px; margin:0 0 36px; }
+  button{
+    font-family:var(--font-head); font-weight:600; font-size:15px;
+    border:none; border-radius:10px; padding:14px 26px; cursor:pointer;
+    transition:transform .12s ease, background .15s ease;
+  }
+  button:active{ transform:scale(.97); }
+  button.primary{ background:var(--live); color:#fff; }
+  button.primary:hover{ background:#ff6a6a; }
+  button.ghost{ background:transparent; color:var(--text); border:1px solid var(--line); }
+  button.ghost:hover{ border-color:var(--text-dim); }
+  button:focus-visible{ outline:2px solid var(--text); outline-offset:2px; }
+  .hint{ color:var(--text-dim); font-size:13px; margin-top:18px; max-width:380px; line-height:1.5; }
+  .video-frame{
+    width:100%; aspect-ratio:16/9; background:var(--bg-inset);
+    border:1px solid var(--line); border-radius:4px; overflow:hidden;
+    display:flex; align-items:center; justify-content:center; margin-bottom:22px;
+  }
+  video{ width:100%; height:100%; object-fit:contain; background:var(--bg-inset); }
+  .placeholder{ color:var(--text-dim); font-family:var(--font-mono); font-size:13px; }
+  .link-row{ width:100%; display:flex; align-items:stretch; gap:8px; margin-bottom:22px; }
+  .link-box{
+    flex:1; background:var(--bg-elevated); border:1px solid var(--line); border-radius:8px;
+    padding:12px 14px; font-family:var(--font-mono); font-size:13px; color:var(--text);
+    overflow-x:auto; white-space:nowrap; text-align:left;
+  }
+  .btn-row{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+  .meta-row{
+    display:flex; align-items:center; gap:8px; color:var(--text-dim);
+    font-family:var(--font-mono); font-size:13px; margin-bottom:26px;
+  }
+  .foot-note{ color:var(--text-dim); font-size:12.5px; margin-top:28px; max-width:420px; line-height:1.6; }
+  .error-box{
+    background:var(--bg-elevated); border:1px solid var(--line); border-radius:8px;
+    padding:18px; color:var(--text-dim); font-size:14px; line-height:1.55; max-width:440px;
+  }
+</style>
+</head>
+<body>
+
+<div class="status-bar">
+  <span class="dot" id="status-dot"></span>
+  <span id="status-text">tela pra amigos</span>
+</div>
+
+<main id="app"></main>
+
+<script>
+(function(){
+  const app = document.getElementById('app');
+  const statusDot = document.getElementById('status-dot');
+  const statusText = document.getElementById('status-text');
+
+  const state = {
+    role: null,
+    roomId: null,
+    localStream: null,
+    hostPeer: null,
+    viewerPeer: null,
+    viewerPc: null,
+    hostConns: new Map(),  // viewerId -> { conn, pc }
+    viewerCount: 0
+  };
+
+  function alphaId(len){
+    const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+    let s = '';
+    for(let i=0;i<len;i++) s += chars[Math.floor(Math.random()*chars.length)];
+    return 'tpa-' + s;
+  }
+
+  function getRoomFromHash(){
+    const m = location.hash.match(/room=([a-z0-9-]+)/i);
+    return m ? m[1] : null;
+  }
+
+  function setStatus(kind, text){
+    statusDot.className = 'dot' + (kind ? ' ' + kind : '');
+    statusText.textContent = text;
+  }
+
+  function updateViewerCountEl(){
+    const el = document.getElementById('viewer-count');
+    if(el) el.textContent = state.viewerCount === 1 ? '1 amigo na sala' : state.viewerCount + ' amigos na sala';
+  }
+
+  // ---------- HOST ----------
+
+  async function startHosting(){
+    if(typeof Peer === 'undefined'){
+      renderStartError({ name:'NoPeerJs' });
+      return;
+    }
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia){
+      renderStartError({ name:'Unsupported' });
+      return;
+    }
+    let stream;
+    try{
+      stream = await navigator.mediaDevices.getDisplayMedia({ video:true, audio:true });
+    }catch(err){
+      renderStartError(err);
+      return;
+    }
+    state.localStream = stream;
+    state.role = 'host';
+    const rId = state.roomId || alphaId(8);
+
+    const peer = new Peer(rId, { debug: 0 });
+    state.hostPeer = peer;
+
+    peer.on('open', function(id){
+      state.roomId = id;
+      localStorage.setItem('hostRoom', id);
+      history.replaceState(null, '', location.pathname + location.search + '#room=' + id);
+      const vTrack = stream.getVideoTracks()[0];
+      if(vTrack) vTrack.addEventListener('ended', stopHosting);
+      setStatus('live', 'ao vivo');
+      renderHost();
+    });
+
+    peer.on('connection', function(conn){
+      const viewerId = conn.peer;
+      let pc = null;
+
+      conn.on('data', async function(msg){
+        if(!msg) return;
+        if(msg.kind === 'offer'){
+          pc = new RTCPeerConnection({ iceServers: iceServers() });
+          state.hostConns.set(viewerId, { conn: conn, pc: pc });
+          state.localStream.getTracks().forEach(function(t){ pc.addTrack(t, state.localStream); });
+          pc.onicecandidate = function(e){
+            if(e.candidate) conn.send({ kind:'ice', candidate: e.candidate.toJSON() });
+          };
+          pc.onconnectionstatechange = function(){
+            if(pc.connectionState === 'failed' || pc.connectionState === 'closed'){
+              state.hostConns.delete(viewerId);
+              state.viewerCount = Math.max(0, state.viewerCount - 1);
+              updateViewerCountEl();
+            }
+          };
+          await pc.setRemoteDescription({ type:'offer', sdp: msg.sdp });
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          conn.send({ kind:'answer', sdp: answer.sdp });
+          state.viewerCount++;
+          updateViewerCountEl();
+        } else if(msg.kind === 'ice' && pc){
+          try{ await pc.addIceCandidate(msg.candidate); }catch(e){}
+        }
+      });
+
+      conn.on('close', function(){
+        const entry = state.hostConns.get(viewerId);
+        if(entry && entry.pc) entry.pc.close();
+        state.hostConns.delete(viewerId);
+        state.viewerCount = Math.max(0, state.viewerCount - 1);
+        updateViewerCountEl();
+      });
+    });
+
+    peer.on('error', function(err){
+      if(err && err.type === 'unavailable-id'){
+        renderStartError({ name:'IdTaken' });
+      } else if(!state.roomId){
+        renderStartError({ name:'PeerError' });
+      }
+    });
+  }
+
+  function stopHosting(){
+    state.hostConns.forEach(function(entry){ entry.pc.close(); entry.conn.close(); });
+    state.hostConns.clear();
+    if(state.localStream) state.localStream.getTracks().forEach(function(t){ t.stop(); });
+    if(state.hostPeer) state.hostPeer.destroy();
+    localStorage.removeItem('hostRoom');
+    setStatus(null, 'transmissão encerrada');
+    renderEnded();
+  }
+
+  function iceServers(){
+    return [
+      { urls:'stun:stun.l.google.com:19302' },
+      { urls:'stun:global.stun.twilio.com:3478' }
+    ];
+  }
+
+  // ---------- VIEWER ----------
+
+  async function joinAsViewer(){
+    if(typeof Peer === 'undefined'){
+      renderRoomUnavailable({ name:'NoPeerJs' });
+      return;
+    }
+    state.role = 'viewer';
+    setStatus(null, 'conectando');
+
+    const peer = new Peer({ debug: 0 });
+    state.viewerPeer = peer;
+
+    peer.on('open', function(){
+      const conn = peer.connect(state.roomId, { reliable:true });
+      let pc = null;
+      const remoteStream = new MediaStream();
+      let switchedToWatching = false;
+
+      conn.on('open', async function(){
+        pc = new RTCPeerConnection({ iceServers: iceServers() });
+        state.viewerPc = pc;
+        pc.addTransceiver('video', { direction:'recvonly' });
+        pc.addTransceiver('audio', { direction:'recvonly' });
+
+        pc.ontrack = function(e){
+          remoteStream.addTrack(e.track);
+          if(!switchedToWatching){
+            switchedToWatching = true;
+            renderViewerWatching();
+          }
+          const v = document.getElementById('viewer-video');
+          if(v && v.srcObject !== remoteStream){
+            v.srcObject = remoteStream;
+            v.play().catch(function(){});
+          }
+        };
+        pc.onicecandidate = function(e){
+          if(e.candidate) conn.send({ kind:'ice', candidate: e.candidate.toJSON() });
+        };
+        pc.onconnectionstatechange = function(){
+          if(pc.connectionState === 'connected'){
+            setStatus('live', 'ao vivo');
+          } else if(pc.connectionState === 'failed'){
+            setStatus(null, 'não foi possível conectar');
+          } else if(pc.connectionState === 'disconnected' || pc.connectionState === 'closed'){
+            setStatus(null, 'transmissão encerrada');
+          }
+        };
+
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        conn.send({ kind:'offer', sdp: offer.sdp });
+      });
+
+      conn.on('data', async function(msg){
+        if(!msg || !pc) return;
+        if(msg.kind === 'answer'){
+          await pc.setRemoteDescription({ type:'answer', sdp: msg.sdp });
+        } else if(msg.kind === 'ice'){
+          try{ await pc.addIceCandidate(msg.candidate); }catch(e){}
+        }
+      });
+
+      conn.on('close', function(){
+        setStatus(null, 'transmissão encerrada');
+      });
+    });
+
+    peer.on('error', function(err){
+      if(err && err.type === 'peer-unavailable'){
+        renderHostOffline();
+      } else {
+        renderRoomUnavailable({ name:'PeerError' });
+      }
+    });
+  }
+
+  // ---------- RENDER ----------
+
+  function renderLanding(){
+    setStatus(null, 'pronto pra começar');
+    app.innerHTML =
+      '<h1>Mostra sua tela, ao vivo</h1>' +
+      '<p class="lede">Compartilhe o que está na sua tela (com áudio) com quem quiser. Um clique pra começar, um link pra convidar.</p>' +
+      '<button class="primary" id="start-btn">Iniciar transmissão</button>' +
+      '<p class="hint">Vai pedir pra você escolher uma tela, janela ou guia. No Chrome, marque a opção de compartilhar áudio pra levar o som junto.</p>';
+    document.getElementById('start-btn').addEventListener('click', startHosting);
+  }
+
+  function renderHostResume(){
+    setStatus(null, 'transmissão pausada');
+    app.innerHTML =
+      '<h1>Retomar sua transmissão</h1>' +
+      '<p class="lede">A página recarregou, então o compartilhamento parou. O link continua o mesmo, é só começar de novo.</p>' +
+      '<button class="primary" id="start-btn">Retomar transmissão</button>';
+    document.getElementById('start-btn').addEventListener('click', startHosting);
+  }
+
+  function renderHost(){
+    const link = location.href;
+    app.innerHTML =
+      '<h1>Você está ao vivo</h1>' +
+      '<div class="video-frame"><video id="host-preview" muted autoplay playsinline></video></div>' +
+      '<div class="link-row">' +
+        '<div class="link-box">' + link + '</div>' +
+        '<button class="ghost" id="copy-btn">Copiar</button>' +
+      '</div>' +
+      '<div class="meta-row"><span id="viewer-count">0 amigos na sala</span></div>' +
+      '<div class="btn-row"><button class="ghost" id="stop-btn">Encerrar transmissão</button></div>' +
+      '<p class="foot-note">Deixe esta aba aberta enquanto estiver transmitindo. Se você fechar ou parar o compartilhamento pelo controle do navegador, a transmissão encerra.</p>';
+    const preview = document.getElementById('host-preview');
+    if(preview && state.localStream) preview.srcObject = state.localStream;
+    document.getElementById('copy-btn').addEventListener('click', function(){
+      navigator.clipboard.writeText(link).then(function(){
+        const b = document.getElementById('copy-btn');
+        b.textContent = 'Copiado';
+        setTimeout(function(){ b.textContent = 'Copiar'; }, 1500);
+      }).catch(function(){});
+    });
+    document.getElementById('stop-btn').addEventListener('click', stopHosting);
+    updateViewerCountEl();
+  }
+
+  function renderViewerConnecting(){
+    app.innerHTML =
+      '<h1>Entrando na transmissão</h1>' +
+      '<div class="video-frame"><span class="placeholder">conectando com quem está transmitindo…</span></div>' +
+      '<p class="hint">Isso costuma levar só alguns segundos. Se a pessoa que compartilhou a tela ainda não começou, a imagem aparece assim que ela iniciar.</p>';
+  }
+
+  function renderViewerWatching(){
+    app.innerHTML =
+      '<h1>Ao vivo</h1>' +
+      '<div class="video-frame"><video id="viewer-video" autoplay playsinline controls></video></div>' +
+      '<p class="foot-note">Sem áudio? Toque no vídeo, alguns navegadores só liberam o som depois de uma interação.</p>';
+  }
+
+  function renderEnded(){
+    app.innerHTML =
+      '<h1>Transmissão encerrada</h1>' +
+      '<p class="lede">Você pode iniciar uma nova transmissão quando quiser, com um link novo.</p>' +
+      '<button class="primary" id="restart-btn">Iniciar nova transmissão</button>';
+    document.getElementById('restart-btn').addEventListener('click', function(){
+      history.replaceState(null, '', location.pathname + location.search);
+      state.roomId = null;
+      renderLanding();
+    });
+  }
+
+  function renderHostOffline(){
+    setStatus(null, 'anfitrião offline');
+    app.innerHTML =
+      '<h1>Ninguém está transmitindo agora</h1>' +
+      '<div class="error-box">Esse link só funciona enquanto a pessoa que compartilhou está com a aba dela aberta e transmitindo. Peça pra ela iniciar a transmissão de novo e abra o link em seguida.</div>';
+  }
+
+  function renderStartError(err){
+    let title = 'Não foi possível começar';
+    let msg = 'O compartilhamento de tela foi cancelado ou o navegador bloqueou o acesso. Verifique as permissões do navegador e tente de novo.';
+    const name = err && err.name;
+    if(name === 'Unsupported'){
+      msg = 'Este navegador não tem suporte a compartilhamento de tela. Tente em uma versão recente de Chrome, Edge ou Firefox.';
+    } else if(name === 'NoPeerJs'){
+      msg = 'A biblioteca de conexão não carregou. Verifique sua internet e recarregue a página.';
+    } else if(name === 'IdTaken'){
+      msg = 'Esse link ainda está reservado de uma tentativa anterior. Espere alguns segundos e tente de novo, ou recarregue a página pra gerar um link novo.';
+    } else if(name === 'PeerError'){
+      msg = 'Não consegui abrir uma conexão em tempo real agora. Verifique sua internet e tente de novo.';
+    }
+    app.innerHTML =
+      '<h1>' + title + '</h1>' +
+      '<div class="error-box">' + msg + '</div>' +
+      '<div class="btn-row" style="margin-top:22px"><button class="primary" id="retry-btn">Tentar de novo</button></div>';
+    document.getElementById('retry-btn').addEventListener('click', startHosting);
+  }
+
+  function renderRoomUnavailable(err){
+    setStatus(null, 'indisponível');
+    const name = err && err.name;
+    const msg = name === 'NoPeerJs'
+      ? 'A biblioteca de conexão não carregou. Verifique sua internet e recarregue a página.'
+      : 'Não consegui abrir uma conexão em tempo real agora. Verifique sua internet e tente de novo.';
+    app.innerHTML =
+      '<h1>Modo ao vivo indisponível</h1>' +
+      '<div class="error-box">' + msg + '</div>';
+  }
+
+  // ---------- INIT ----------
+
+  function init(){
+    const hashRoom = getRoomFromHash();
+    const hostRoom = localStorage.getItem('hostRoom');
+
+    if(hashRoom && hashRoom === hostRoom){
+      state.roomId = hashRoom;
+      renderHostResume();
+    } else if(hashRoom){
+      state.roomId = hashRoom;
+      renderViewerConnecting();
+      joinAsViewer();
+    } else {
+      renderLanding();
+    }
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
